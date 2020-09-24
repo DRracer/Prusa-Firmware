@@ -146,9 +146,26 @@ extern void menu_format_sheet_E(const Sheet &sheet_E, SheetFormatBuffer &buffer)
 
 
 #define MENU_ITEM_EDIT_int3_P(str, pval, minval, maxval) do { if (menu_item_edit_P(str, pval, minval, maxval)) return; } while (0)
+
 //#define MENU_ITEM_EDIT_int3_P(str, pval, minval, maxval) MENU_ITEM_EDIT(int3, str, pval, minval, maxval)
 template <typename T>
 extern uint8_t menu_item_edit_P(const char* str, T pval, int16_t min_val, int16_t max_val);
 
+/// variant of MENU_ITEM_EDIT_int3_P allowing custom setter function to be called
+#define MENU_ITEM_EDIT_int3_set(str, pval, setter, minval, maxval) do { if (menu_item_edit_P_set(str, pval, setter, minval, maxval)) return; } while (0)
+
+/// setter function interface
+typedef void (* menu_item_edit_setter)(menu_data_edit_t*, int32_t);
+
+/// variant of menu_item_edit_P supporting a setter function
+/// To make the interface as closest as possibe to the original menu_item_edit_P, the T template parameter is expected to be a pointer, e.g. uint8_t *.
+/// Therefore it may look strange when used like this:
+/// 
+/// uint8_t tmpVar = something;
+/// menu_item_edit_P_set("some text", &tmpVar, &SetterFunction, ...
+/// 
+/// However, the pval parameter is only used in initialization of the internal data structures, so its address may go out of scope without causing damage
+template <typename T>
+extern uint8_t menu_item_edit_P_set(const char* str, T pval, menu_item_edit_setter set, int16_t min_val, int16_t max_val);
 
 #endif //_MENU_H

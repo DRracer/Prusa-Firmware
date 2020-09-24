@@ -183,7 +183,9 @@ float homing_feedrate[] = HOMING_FEEDRATE;
 uint8_t axis_relative_modes = 0;
 
 int feedmultiply=100; //100->1 200->2
-int extrudemultiply=100; //100->1 200->2
+//int extrudemultiply=100; //100->1 200->2
+ExtrudeMultiply extrMultiply;
+
 int extruder_multiply[EXTRUDERS] = {100
   #if EXTRUDERS > 1
     , 100
@@ -2404,7 +2406,7 @@ void refresh_cmd_timeout(void)
       destination[Y_AXIS]=current_position[Y_AXIS];
       destination[Z_AXIS]=current_position[Z_AXIS];
       destination[E_AXIS]=current_position[E_AXIS];
-      current_position[E_AXIS]+=(swapretract?retract_length_swap:cs.retract_length)*float(extrudemultiply)*0.01f;
+      current_position[E_AXIS]+=(swapretract?retract_length_swap:cs.retract_length)*float(extrMultiply.Value())*0.01f;
       plan_set_e_position(current_position[E_AXIS]);
       float oldFeedrate = feedrate;
       feedrate=cs.retract_feedrate*60;
@@ -2421,7 +2423,7 @@ void refresh_cmd_timeout(void)
       destination[E_AXIS]=current_position[E_AXIS];
       current_position[Z_AXIS]+=cs.retract_zlift;
       plan_set_position_curposXYZE();
-      current_position[E_AXIS]-=(swapretract?(retract_length_swap+retract_recover_length_swap):(cs.retract_length+cs.retract_recover_length))*float(extrudemultiply)*0.01f;
+      current_position[E_AXIS]-=(swapretract?(retract_length_swap+retract_recover_length_swap):(cs.retract_length+cs.retract_recover_length))*float(extrMultiply.Value())*0.01f;
       plan_set_e_position(current_position[E_AXIS]);
       float oldFeedrate = feedrate;
       feedrate=cs.retract_recover_feedrate*60;
@@ -7414,12 +7416,12 @@ Sigma_Exit:
             }
             else
             {
-                extrudemultiply = tmp_code ;
+                extrMultiply.SetValue(tmp_code);
             }
         }
         else
         {
-            printf_P(PSTR("%i%%\n"), extrudemultiply);
+            printf_P(PSTR("%i%%\n"), extrMultiply.Value());
         }
         calculate_extruder_multipliers();
     }
@@ -9974,8 +9976,8 @@ float calculate_extruder_multiplier(float diameter) {
     float area = M_PI * diameter * diameter * 0.25;
     out = 1.f / area;
   }
-  if (extrudemultiply != 100)
-    out *= float(extrudemultiply) * 0.01f;
+  if (extrMultiply.Value() != 100)
+    out *= float(extrMultiply.Value()) * 0.01f;
   return out;
 }
 
@@ -10814,7 +10816,7 @@ void uvlo_()
 	eeprom_update_float((float*)(EEPROM_EXTRUDER_MULTIPLIER_2), extruder_multiplier[2]);
 #endif
 #endif
-	eeprom_update_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY), (uint16_t)extrudemultiply);
+	eeprom_update_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY), (uint16_t)extrMultiply.Value());
 
     // Store the saved target
     eeprom_update_float((float*)(EEPROM_UVLO_SAVED_TARGET+0*4), saved_target[X_AXIS]);
@@ -11087,7 +11089,7 @@ bool recover_machine_state_after_power_panic()
   extruder_multiplier[2] = eeprom_read_float((float*)(EEPROM_EXTRUDER_MULTIPLIER_2));
 #endif
 #endif
-  extrudemultiply = (int)eeprom_read_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY));
+  extrMultiply.SetValue( (int)eeprom_read_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY)) );
 
   // 9) Recover the saved target
   saved_target[X_AXIS] = eeprom_read_float((float*)(EEPROM_UVLO_SAVED_TARGET+0*4));

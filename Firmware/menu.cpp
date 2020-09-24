@@ -500,7 +500,22 @@ void menu_draw_float13(const char* str, float val)
 	lcd_printf_P(menu_fmt_float13, ' ', str, val);
 }
 
-template <typename T>
+template<typename T>
+struct _menu_edit_P_default_set {
+inline void operator()(menu_data_edit_t* _md, int32_t lcd_encoder)const{
+    T *dst = reinterpret_cast<T *>(_md->editValue);
+    *dst = (T)lcd_encoder;
+}
+};
+
+struct _menu_edit_P_explicit_setter {
+inline void operator()(menu_data_edit_t* _md, int32_t lcd_encoder)const{
+    menu_item_edit_setter setter = reinterpret_cast<menu_item_edit_setter>(_md->editValue);
+    setter(_md, lcd_encoder);
+}
+};
+
+template <typename T, typename SET = _menu_edit_P_default_set<T> >
 static void _menu_edit_P(void)
 {
 	menu_data_edit_t* _md = (menu_data_edit_t*)&(menu_data[0]);
@@ -513,7 +528,8 @@ static void _menu_edit_P(void)
 	}
 	if (LCD_CLICKED)
 	{
-		*((T)(_md->editValue)) = lcd_encoder;
+        SET set;
+        set(_md, lcd_encoder);
 		menu_back_no_reset();
 	}
 }
@@ -546,5 +562,38 @@ uint8_t menu_item_edit_P(const char* str, T pval, int16_t min_val, int16_t max_v
 
 template uint8_t menu_item_edit_P<int16_t*>(const char* str, int16_t *pval, int16_t min_val, int16_t max_val);
 template uint8_t menu_item_edit_P<uint8_t*>(const char* str, uint8_t *pval, int16_t min_val, int16_t max_val);
+
+// normally I'd template the setter function as well to allow for lambdas etc. However,
+// I'm really trying to keep the overall footprint down, so a bit of nasty C-style
+// hacks was necessary instead of a nice and clean code.
+// Implanting the setter into the widely used menu_item_edit_P resulted in 100B+ longer code than to make this separate template.
+// Even though this function adds 500B of code on its own.
+template <typename T>
+uint8_t menu_item_edit_P_set(const char* str, T pval, menu_item_edit_setter set, int16_t min_val, int16_t max_val)
+{
+	menu_data_edit_t* _md = (menu_data_edit_t*)&(menu_data[0]);
+	if (menu_item == menu_line)
+	{
+		if (lcd_draw_update) 
+		{
+			lcd_set_cursor(0, menu_row);
+			menu_draw_P<T>(menu_selection_mark(), str, *pval);
+		}
+		if (menu_clicked && (lcd_encoder == menu_item))
+		{
+			menu_submenu_no_reset(_menu_edit_P<T, _menu_edit_P_explicit_setter>);
+			_md->editLabel = str;
+			_md->editValue = (void*)set; // horrible hack: abuse the editValue for storing the setter function
+			_md->minEditValue = min_val;
+			_md->maxEditValue = max_val;
+			lcd_encoder = *pval;
+			return menu_item_ret();
+		}
+	}
+	menu_item++;
+	return 0;
+}
+template uint8_t menu_item_edit_P_set<int16_t*>(const char* str, int16_t *pval, menu_item_edit_setter set, int16_t min_val, int16_t max_val);
+template uint8_t menu_item_edit_P_set<uint8_t*>(const char* str, uint8_t *pval, menu_item_edit_setter set, int16_t min_val, int16_t max_val);
 
 #undef _menu_data

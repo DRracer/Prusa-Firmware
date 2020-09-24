@@ -7115,6 +7115,13 @@ static uint8_t lcd_advance_K()
 #define MENU_ITEM_EDIT_advance_K() do { if (lcd_advance_K()) return; } while (0)
 #endif
 
+//struct _menu_edit_P_set_extrmult {
+//void operator()(menu_data_edit_t* /*_md*/, int32_t lcd_encoder){
+//    extrMultiply.SetValue( lcd_encoder );
+//}
+//};
+
+void SetExtrMult(menu_data_edit_t* /*_md*/, int32_t lcd_encoder){ extrMultiply.SetValue( lcd_encoder ); } 
 
 static void lcd_tune_menu()
 {
@@ -7132,12 +7139,12 @@ static void lcd_tune_menu()
 	{
 		// Menu was entered. Mark the menu as entered and save the current extrudemultiply value.
 		_md->status = 1;
-		_md->extrudemultiply = extrudemultiply;
+		_md->extrudemultiply = extrMultiply.Value();
 	}
-	else if (_md->extrudemultiply != extrudemultiply)
+	else if (_md->extrudemultiply != extrMultiply.Value())
 	{
 		// extrudemultiply has been changed from the child menu. Apply the new value.
-		_md->extrudemultiply = extrudemultiply;
+		_md->extrudemultiply = extrMultiply.Value();
 		calculate_extruder_multipliers();
 	}
 
@@ -7153,7 +7160,10 @@ static void lcd_tune_menu()
 	MENU_ITEM_EDIT_int3_P(_T(MSG_BED), &target_temperature_bed, 0, BED_MAXTEMP - 10);//4
 
 	MENU_ITEM_EDIT_int3_P(_T(MSG_FAN_SPEED), &fanSpeed, 0, 255);//5
-	MENU_ITEM_EDIT_int3_P(_i("Flow"), &extrudemultiply, 10, 999);//6////MSG_FLOW
+
+    int16_t tmpExVal = extrMultiply.Value();
+    MENU_ITEM_EDIT_int3_set(_i("Flow"), &tmpExVal, &SetExtrMult, 10, 999);//6////MSG_FLOW
+
 #ifdef LA_LIVE_K
 	MENU_ITEM_EDIT_advance_K();//7
 #endif

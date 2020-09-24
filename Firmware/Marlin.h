@@ -287,12 +287,24 @@ FORCE_INLINE unsigned long millis_nc() {
 void setPwmFrequency(uint8_t pin, int val);
 #endif
 
+class ExtrudeMultiply {
+    int16_t extrudemultiply;    // 100->1 200->2
+public:
+    inline ExtrudeMultiply():extrudemultiply(100){}
+    inline int16_t Value()const { return extrudemultiply; }
+    void SetValue(int16_t v){ 
+        extrudemultiply = v; 
+        // and probably notify serial line hosts (Octoprint)
+    }
+};
+
 extern bool fans_check_enabled;
 extern float homing_feedrate[];
 extern uint8_t axis_relative_modes;
 extern float feedrate;
 extern int feedmultiply;
-extern int extrudemultiply; // Sets extrude multiply factor (in percent) for all extruders
+//extern int extrudemultiply; // Sets extrude multiply factor (in percent) for all extruders
+extern ExtrudeMultiply extrMultiply;
 extern int extruder_multiply[EXTRUDERS]; // sets extrude multiply factor (in percent) for each extruder individually
 extern float extruder_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern float current_position[NUM_AXIS] ;
